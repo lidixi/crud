@@ -1,0 +1,170 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dyzc.survey.mapper.QuestionBankMapper">
+
+    <!-- 插入新题目 -->
+    <insert id="insertQuestion">
+        INSERT INTO t_question (qu_id, qu_name, qu_type, qu_create_date, order_by_id, qu_bank_name, qu_bank_code, qu_description)
+        VALUES (
+                   #{quId},
+                   #{quName},
+                   #{quType},
+                   sysdate,
+                   (SELECT COALESCE(MAX(order_by_id), 0) + 1 FROM t_question WHERE qu_bank_code = #{quBankCode}),
+                   #{quBankName},
+                   #{quBankCode},
+                   #{quDescription}
+               )
+    </insert>
+
+    <!-- 批量插入单选题选项 -->
+    <insert id="batchInsertRadioOptions">
+        insert all
+        <foreach collection="options" item="option">
+            INTO t_qu_radio (radio_id, belong_qu_id, option_name, radio_order_by_id)
+            VALUES (#{option.radioId}, #{option.belongQuId}, #{option.optionName}, #{option.radioOrderById})
+        </foreach>
+        SELECT 1 FROM DUAL
+    </insert>
+
+    <!-- 批量插入多选题选项 -->
+    <insert id="batchInsertCheckOptions">
+        insert all
+        <foreach collection="options" item="option">
+            INTO t_qu_checkbox (id, qu_id, option_name, order_by_id)
+            VALUES (#{option.id}, #{option.quId}, #{option.optionName}, #{option.orderById})
+        </foreach>
+        SELECT 1 FROM DUAL
+    </insert>
+
+    <!-- 批量插入多项填空题选项 -->
+    <insert id="batchInsertMultiFillBlankOptions">
+        insert all
+        <foreach collection="options" item="option">
+            INTO t_qu_multi_fillblank (multi_fillblank_qu_id, qu_id, option_name, order_by_id)
+            VALUES (#{option.multiFillBlankQuId}, #{option.quId}, #{option.optionName}, #{option.orderById})
+        </foreach>
+        SELECT 1 FROM DUAL
+    </insert>
+
+    <!-- 批量插入评分题选项 -->
+    <insert id="batchInsertScoreOptions">
+        insert all
+        <foreach collection="options" item="option">
+            INTO t_qu_score (score_qu_id, qu_id, option_name, order_by_id)
+            VALUES (#{option.scoreQuId}, #{option.quId}, #{option.optionName}, #{option.orderById})
+        </foreach>
+        SELECT 1 FROM DUAL
+    </insert>
+
+    <!-- 删除题目 -->
+    <delete id="deleteQuestion">
+        DELETE FROM t_question WHERE qu_id = #{quId}
+    </delete>
+
+    <!-- 删除题目所有单选题选项 -->
+    <delete id="deleteRadioOptionsByQuestionId">
+        DELETE FROM t_qu_radio WHERE belong_qu_id = #{quId}
+    </delete>
+
+    <!-- 删除题目所有多选题选项 -->
+    <delete id="deleteCheckOptionsByQuestionId">
+        DELETE FROM t_qu_checkbox WHERE qu_id = #{quId}
+    </delete>
+
+    <!-- 删除题目所有多项填空题选项 -->
+    <delete id="deleteMultiFillBlankOptionsByQuestionId">
+        DELETE FROM t_qu_multi_fillblank WHERE qu_id = #{quId}
+    </delete>
+
+    <!-- 删除题目所有评分选项 -->
+    <delete id="deleteScoreOptionsByQuestionId">
+        DELETE FROM t_qu_score WHERE qu_id = #{quId}
+    </delete>
+
+    <!-- 更新题目 -->
+    <update id="updateQuestionByNameAndDescription">
+        UPDATE t_question
+        SET qu_name = #{quName},
+            qu_description = #{quDescription},
+            qu_create_date = sysdate
+        WHERE qu_id = #{quId}
+    </update>
+
+    <!-- 查询题目及其选项 -->
+    <select id="selectQuestionsByBankCode" resultType="com.dyzc.survey.domain.QuestionBankModel">
+        SELECT qu_id, qu_name, qu_type, qu_create_date, order_by_id, qu_bank_name, qu_bank_code, qu_description
+        FROM t_question WHERE qu_bank_code = #{quBankCode}
+    </select>
+
+    <!-- 查询单选题选项 -->
+    <select id="selectRadioOptionsByQuestionId" resultType="com.dyzc.survey.domain.RadioQuestionModel">
+        SELECT radio_id, belong_qu_id, option_name, radio_order_by_id FROM t_qu_radio WHERE belong_qu_id = #{quId}
+    </select>
+
+    <!-- 查询多选题选项 -->
+    <select id="selectCheckOptionsByQuestionId" resultType="com.dyzc.survey.domain.CheckQuestionModel">
+        SELECT id, qu_id, option_name, order_by_id FROM t_qu_checkbox WHERE qu_id = #{quId}
+    </select>
+
+    <!-- 查询多项填空题选项 -->
+    <select id="selectMultiFillBlankOptionsByQuestionId" resultType="com.dyzc.survey.domain.MultiFillBlankQuestionModel">
+        SELECT multi_fillblank_qu_id, qu_id, option_name, order_by_id FROM t_qu_multi_fillblank WHERE qu_id = #{quId}
+    </select>
+
+    <!-- 查询评分题选项 -->
+    <select id="selectScoreOptionsByQuestionId" resultType="com.dyzc.survey.domain.ScoreQuestionModel">
+        SELECT score_qu_id, qu_id, option_name, order_by_id FROM t_qu_score WHERE qu_id = #{quId}
+    </select>
+
+    <!-- 模糊搜索题目 -->
+    <select id="searchQuestions" resultType="com.dyzc.survey.domain.QuestionBankModel">
+        SELECT qu_id, qu_name, qu_type, qu_create_date, order_by_id, qu_bank_name, qu_bank_code, qu_description
+        FROM t_question
+        WHERE qu_bank_code = #{quBankCode}
+          AND (qu_name LIKE '%' || #{search} || '%' OR qu_description LIKE '%' || #{search} || '%')
+    </select>
+
+    <!-- 获取题目类型 -->
+    <select id="getQuestionTypeByQuId" resultType="String">
+        SELECT qu_type
+        FROM t_question
+        WHERE qu_id = #{quId}
+    </select>
+
+    <!-- 统计题目数量 -->
+    <select id="countQuestionsByBankCode" resultType="int">
+        SELECT COUNT(1) FROM t_question WHERE qu_bank_code = #{quBankCode}
+    </select>
+
+    <!-- 获取题库键值 -->
+    <select id="getQuBankCodeByQuId" resultType="String">
+        SELECT qu_bank_code
+        FROM t_question
+        WHERE qu_id = #{quId}
+    </select>
+
+    <!-- 获取题目的排序序号 -->
+    <select id="getOrderByIdByQuId" resultType="int">
+        SELECT order_by_id
+        FROM t_question
+        WHERE qu_id = #{quId}
+    </select>
+
+    <!-- 更新排序序号 -->
+    <update id="updateOrderByIdAfterDeletion">
+        UPDATE t_question
+        SET order_by_id = order_by_id - 1
+        WHERE qu_bank_code = #{quBankCode} AND order_by_id > #{orderById}
+    </update>
+
+    <!-- 获取题库下的最大排序序号 -->
+    <select id="getMaxOrderByIdByQuBankCode" resultType="int">
+        SELECT COALESCE(MAX(order_by_id), 0)
+        FROM t_question
+        WHERE qu_bank_code = #{quBankCode}
+    </select>
+
+</mapper>
