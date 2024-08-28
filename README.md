@@ -26,13 +26,3 @@ quType的判断方式类似于：QuType.RADIO.getActionName().equals(type)
 题目信息为：自动生成UUID主键quId、题目名称quName、题目类型quType、创建时间、题目排序序号orderById、题库类型quBankName、题库键值quBankCode、题目描述quDescription
 
 各题目及其选项的排序序号orderById的维护从1开始计算，题目的orderById根据题库键值quId为一组，选项的orderById根据所属题目为一组。当orderById为非最大值的记录被删除时，后面记录的orderById减1。
-
-1.能够根据题目名称quName、题目类型quType、题库类型quBankName、题库键值quBankCode和题目描述quDescription，在题目表中增加新题目；
-2.能够根据题目主键quId和选项内容optionName，在对应题目类型的选项表中根据选项内容增加该题目的选项；
-3.能够根据题目主键quId删除题目，并删除对应题目类型的选项表里该题目的所有选项；
-4.能够根据题目主键quId和选项主键，在对应题目类型的选项表中根据选项主键删除该题目的该选项；
-5.能够根据题目名称quName和题目描述更新题目；
-6.能够根据题目主键quId、选项主键和选项内容option_name，在对应题目类型的选项表中根据选项内容更新题目选项；
-7.能够根据题库键值quBankCode，查询题目及题目的选项；
-8.能够根据题库键值quBankCode统计题目的总数；
-9.能够根据题库键值，以及题目名称或题目说明的模糊查找，查询题目及其选项。
