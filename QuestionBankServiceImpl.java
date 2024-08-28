@@ -198,9 +198,7 @@ public class QuestionBankServiceImpl implements QuestionBankService {
                 questionBankMapper.deleteMultiFillBlankOptionsByQuestionId(quId);
             } else if (QuType.SCORE.getActionName().equals(quType)) {
                 questionBankMapper.deleteScoreOptionsByQuestionId(quId);
-            } else {
-                throw new IllegalArgumentException("未知的题目类型：" + quType);
-            }
+            } 
             // 删除题目
             questionBankMapper.deleteQuestion(quId);
             // 更新排序序号：如果删除的题目的 orderById 不是最大值，需要更新其他题目的排序序号
