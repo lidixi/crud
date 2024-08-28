@@ -131,7 +131,6 @@ public class QuestionBankServiceImpl implements QuestionBankService {
     }
 
     @Override
-    @Transactional(rollbackFor = Exception.class)
     public AjaxResult getQuestionsByBankCode(String quBankCode) {
         try {
             List<QuestionBankModel> questions = questionBankMapper.selectQuestionsByBankCode(quBankCode);
@@ -156,7 +155,6 @@ public class QuestionBankServiceImpl implements QuestionBankService {
     }
 
     @Override
-    @Transactional(rollbackFor = Exception.class)
     public AjaxResult searchQuestions(String quBankCode, String search) {
         try {
             List<QuestionBankModel> questions = questionBankMapper.searchQuestions(quBankCode, search);
