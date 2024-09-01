@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dyzc.survey.mapper.KnowledgeBaseMapper">
+
+    <select id="search" resultType="com.dyzc.survey.domain.KnowledgeBaseModel">
+        SELECT id,title,summary,created_person,created_date,status FROM knowledgebase
+        WHERE (created_person LIKE '%' || #{keyword} || '%'
+        OR title LIKE '%' || #{keyword} || '%'
+        OR summary LIKE '%' || #{keyword} || '%')
+        <if test="status != null and status != ''">
+            AND status = #{status}
+        </if>
+        ORDER BY created_date
+    </select>
+
+    <insert id="insertKnowledgeBase" parameterType="com.dyzc.survey.domain.KnowledgeBaseModel">
+        INSERT INTO knowledgebase (id, title, summary, content, created_person, created_date, status)
+        VALUES (#{id}, #{title}, #{summary}, #{content}, #{createdPerson}, SYSDATE, #{status})
+    </insert>
+
+    <update id="updateKnowledgeBase" parameterType="com.dyzc.survey.domain.KnowledgeBaseModel">
+        UPDATE knowledgebase
+        SET title = #{title},
+            summary = #{summary},
+            content = #{content},
+            status = #{status}
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteKnowledgeBase" parameterType="string">
+        DELETE FROM knowledgebase WHERE id = #{id}
+    </delete>
+
+    <update id="updateStatusToPublished" parameterType="string">
+        UPDATE knowledgebase
+        SET status = 1
+        WHERE id = #{id}
+    </update>
+
+    <select id="viewArticleById" resultType="com.dyzc.survey.domain.KnowledgeBaseModel">
+        SELECT title,summary,content FROM knowledgebase
+        WHERE id = #{id}
+        ORDER BY created_date
+    </select>
+</mapper>
