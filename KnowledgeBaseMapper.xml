@@ -40,7 +40,7 @@
     </update>
 
     <select id="viewArticleById" resultType="com.dyzc.survey.domain.KnowledgeBaseModel">
-        SELECT title,summary,content FROM knowledgebase
+        SELECT title, summary, content, created_person FROM knowledgebase
         WHERE id = #{id}
         ORDER BY created_date
     </select>
