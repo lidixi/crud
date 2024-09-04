@@ -6,9 +6,15 @@ import com.dyzc.survey.domain.*;
 import com.dyzc.survey.mapper.KnowledgeBaseMapper;
 import com.dyzc.survey.service.KnowledgeBaseService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import cn.afterturn.easypoi.word.WordExportUtil;
+import org.apache.poi.xwpf.usermodel.XWPFDocument;
+
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class KnowledgeBaseServiceImpl implements KnowledgeBaseService {
@@ -69,6 +75,33 @@ public class KnowledgeBaseServiceImpl implements KnowledgeBaseService {
             return AjaxResult.success(knowledgeBaseModel);
         } catch (Exception e) {
             return AjaxResult.error("文章预览失败" + e.getMessage());
+        }
+    }
+
+    @Value("${follow.profile}")
+    private String profile;
+
+    @Override
+    public XWPFDocument generateWordDocument(String id) {
+
+        List<KnowledgeBaseModel> articles = knowledgeBaseMapper.viewArticleById(id);
+        if (articles == null || articles.isEmpty()) {
+            throw new RuntimeException("未找到指定id的文章");
+        }
+        KnowledgeBaseModel article = articles.get(0);
+
+        // 模板文件路径
+        String templatePath = profile + "/template.docx";  // 模板文件名为 template.docx
+
+        Map<String, Object> dataMap = new HashMap<>();
+        dataMap.put("title", article.getTitle());
+        dataMap.put("createdPerson", article.getCreatedPerson());
+        dataMap.put("content", article.getContent());
+
+        try {
+            return WordExportUtil.exportWord07(templatePath, dataMap);
+        } catch (Exception e) {
+            throw new RuntimeException("导出Word文档失败: " + e.getMessage(), e);
         }
     }
 }
