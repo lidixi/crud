@@ -1,107 +1,127 @@
-package com.dyzc.survey.service.impl;
+package com.dyzc.web.controller.follow.survey;
 
 import com.dyzc.common.core.domain.AjaxResult;
-import com.dyzc.common.core.lang.UUID;
-import com.dyzc.survey.domain.*;
-import com.dyzc.survey.mapper.KnowledgeBaseMapper;
+import com.dyzc.common.core.page.TableDataInfo;
+import com.dyzc.common.exception.user.UserNotFundException;
+import com.dyzc.framework.util.ShiroUtils;
+import com.dyzc.common.core.controller.BaseController;
+import com.dyzc.survey.domain.KnowledgeBaseModel;
 import com.dyzc.survey.service.KnowledgeBaseService;
+import com.dyzc.system.domain.SysUser;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
+import org.springframework.web.bind.annotation.*;
 
-import cn.afterturn.easypoi.word.WordExportUtil;
-import org.apache.poi.xwpf.usermodel.XWPFDocument;
-
-import java.util.HashMap;
+import java.io.IOException;
 import java.util.List;
-import java.util.Map;
+import org.apache.poi.xwpf.usermodel.XWPFDocument;
+import javax.servlet.http.HttpServletResponse;
+import java.io.OutputStream;
+import java.net.URLEncoder;
 
-@Service
-public class KnowledgeBaseServiceImpl implements KnowledgeBaseService {
+@RestController
+@RequestMapping("/articles")
+public class KnowledgeBaseController extends BaseController {
 
     @Autowired
-    private KnowledgeBaseMapper knowledgeBaseMapper;
+    private KnowledgeBaseService knowledgeBaseService;
 
-    @Override
-    public List<KnowledgeBaseModel> searchArticles(String keyword, String status) {
-        return knowledgeBaseMapper.search(keyword, status);
-    }
-
-    @Override
-    public AjaxResult addArticle(KnowledgeBaseModel knowledgeBaseModel) {
-        try {
-            knowledgeBaseModel.setId(UUID.randomUUID().toString());
-            knowledgeBaseMapper.insertKnowledgeBase(knowledgeBaseModel);
-            return AjaxResult.success("文章添加成功");
-        } catch (Exception e){
-        return AjaxResult.error("文章添加失败" + e.getMessage());
+    //  分页搜索，根据状态（不填为全部，等于1为已发布，等于0为草稿）在标题、摘要、创建人中模糊搜索
+    @PostMapping("/search")
+    public TableDataInfo searchArticles(@RequestParam(value = "keyword", required = false, defaultValue = "") String keyword,
+                                        @RequestParam(value = "status", required = false, defaultValue = "") String status,
+                                        KnowledgeBaseModel knowledgeBaseModel) {
+        if ("".equals(status)) {
+            status = null;
         }
+        startPage();
+        List<KnowledgeBaseModel> list = knowledgeBaseService.searchArticles(keyword, status);
+        return getDataTable(list);
     }
 
-    @Override
-    public AjaxResult updateArticle(KnowledgeBaseModel knowledgeBaseModel) {
-        try {
-            knowledgeBaseMapper.updateKnowledgeBase(knowledgeBaseModel);
-            return AjaxResult.success("文章更新成功");
-        } catch (Exception e){
-            return AjaxResult.error("文章更新失败" + e.getMessage());
+    //  添加文章
+    @PostMapping("/add")
+    public AjaxResult addArticle(@RequestBody KnowledgeBaseModel knowledgeBase) {
+        SysUser user = ShiroUtils.getSysUser();
+        if (user == null) {
+            throw new UserNotFundException("登录失效,请重新登录");
         }
+        return knowledgeBaseService.addArticle(knowledgeBase);
     }
 
-    @Override
-    public AjaxResult deleteArticle(String id) {
+    //  更新文章
+    @PostMapping("/update")
+    public AjaxResult updateArticle(@RequestBody KnowledgeBaseModel knowledgeBase) {
+        SysUser user = ShiroUtils.getSysUser();
+        if (user == null) {
+            throw new UserNotFundException("登录失效,请重新登录");
+        }
+        return knowledgeBaseService.updateArticle(knowledgeBase);
+    }
+
+    //  删除文章
+    @PostMapping("/delete")
+    public AjaxResult deleteArticle(@RequestParam("id") String id) {
+        SysUser user = ShiroUtils.getSysUser();
+        if (user == null) {
+            throw new UserNotFundException("登录失效,请重新登录");
+        }
+        return knowledgeBaseService.deleteArticle(id);
+    }
+
+
+    //  发布草稿
+    @PostMapping("/publish")
+    public AjaxResult publishArticle(@RequestParam("id") String id) {
+        SysUser user = ShiroUtils.getSysUser();
+        if (user == null) {
+            throw new UserNotFundException("登录失效,请重新登录");
+        }
+        return knowledgeBaseService.publishArticle(id);
+    }
+
+    //  预览文章
+    @PostMapping("/view")
+    public AjaxResult viewArticle(@RequestParam("id") String id) {
+        SysUser user = ShiroUtils.getSysUser();
+        if (user == null) {
+            throw new UserNotFundException("登录失效,请重新登录");
+        }
+        return knowledgeBaseService.viewArticle(id);
+    }
+
+    // 导出并下载Word
+    @PostMapping("/export")
+    public void exportArticleById(@RequestParam("id") String id, HttpServletResponse response) {
+        XWPFDocument document = null;
         try {
-            knowledgeBaseMapper.deleteKnowledgeBase(id);
-            return AjaxResult.success("文章删除成功");
+            document = knowledgeBaseService.generateWordDocument(id);
+            if (document == null) {
+                throw new RuntimeException("未找到指定id的文章");
+            }
+
+            String fileName = id + ".docx";
+            String encodedFileName = URLEncoder.encode(fileName, "UTF-8");
+
+            response.setContentType("application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+            response.setHeader("Content-Disposition", "attachment; filename="
+                    + new String(encodedFileName.getBytes("UTF-8"), "ISO-8859-1"));
+
+            try (OutputStream os = response.getOutputStream()) {
+                document.write(os);
+            }
+        } catch (IOException e) {
+            throw new RuntimeException("导出文章时发生IO错误: " + e.getMessage(), e);
         } catch (Exception e) {
-            return AjaxResult.error("文章删除失败: " + e.getMessage());
-        }
-    }
-
-    @Override
-    public AjaxResult publishArticle(String id) {
-        try {
-            knowledgeBaseMapper.updateStatusToPublished(id);
-            return AjaxResult.success("草稿发布成功");
-        } catch (Exception e) {
-            return AjaxResult.error("草稿发布失败" + e.getMessage());
-        }
-    }
-
-    @Override
-    public AjaxResult viewArticle(String id) {
-        try {
-            List<KnowledgeBaseModel> knowledgeBaseModel = knowledgeBaseMapper.viewArticleById(id);
-            return AjaxResult.success(knowledgeBaseModel);
-        } catch (Exception e) {
-            return AjaxResult.error("文章预览失败" + e.getMessage());
-        }
-    }
-
-    @Value("${follow.profile}")
-    private String profile;
-
-    @Override
-    public XWPFDocument generateWordDocument(String id) {
-
-        List<KnowledgeBaseModel> articles = knowledgeBaseMapper.viewArticleById(id);
-        if (articles == null || articles.isEmpty()) {
-            throw new RuntimeException("未找到指定id的文章");
-        }
-        KnowledgeBaseModel article = articles.get(0);
-
-        // 模板文件路径
-        String templatePath = profile + "/template.docx";  // 模板文件名为 template.docx
-
-        Map<String, Object> dataMap = new HashMap<>();
-        dataMap.put("title", article.getTitle());
-        dataMap.put("createdPerson", article.getCreatedPerson());
-        dataMap.put("content", article.getContent());
-
-        try {
-            return WordExportUtil.exportWord07(templatePath, dataMap);
-        } catch (Exception e) {
-            throw new RuntimeException("导出Word文档失败: " + e.getMessage(), e);
+            throw new RuntimeException("导出文章时发生错误: " + e.getMessage(), e);
+        } finally {
+            // 确保 XWPFDocument 也被关闭
+            if (document != null) {
+                try {
+                    document.close();
+                } catch (IOException e) {
+                    logger.error("关闭文档时发生错误: {}", e.getMessage(), e);
+                }
+            }
         }
     }
 }
