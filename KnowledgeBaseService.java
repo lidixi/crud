@@ -55,4 +55,12 @@ public interface KnowledgeBaseService {
      * @return 操作结果，包含成功或失败的信息
      */
     AjaxResult viewArticle(String id);
+
+        /**
+     * 导出并下载Word文档
+     *
+     * @param id 需要导出的文章的 ID
+     * @return Word附件
+     */
+    XWPFDocument generateWordDocument(String id);
 }
